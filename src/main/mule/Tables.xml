@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="Tables" doc:id="5e803208-9c25-4e06-91c4-e58248fdc2c5" >
+		<http:listener doc:name="Listener" doc:id="774aadc1-526d-4357-8f97-ee7810cd63a1" config-ref="HTTP_Listener_config" path="/tables" >
+			<http:error-response >
+				<http:body ><![CDATA[#[output text/plain --- vars.error]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<try doc:name="Try" doc:id="58dc3638-2923-4077-9b5b-34df562a4ac7" >
+			<http:request method="GET" doc:name="Request Currency Tables" doc:id="92a3eadb-de8d-4840-bd48-8b1f1a39dd0b" sendCorrelationId="NEVER" config-ref="NBP-configuration" path="/tables/C/"/>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="68150f98-bd95-47ed-864b-faad9a521750" type="HTTP:NOT_FOUND" >
+					<logger level="WARN" doc:name="Log unsuccesful request" doc:id="f9755865-8ea0-4fea-aafd-dce80bd219ce" message="Table not found"/>
+					<set-variable value="Table not found" doc:name="Set Error Message" doc:id="43a72d90-856f-4a44-9ce0-f3e9e8a320b3" variableName="error" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Transform Message" doc:id="f0e42a4d-8a05-4ca4-9d1a-e5b9deec05ad" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.rates]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

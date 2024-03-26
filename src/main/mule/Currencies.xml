@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="4c7dd85e-7228-497d-af28-0c01ae8fd7be" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<flow name="Currencies" doc:id="9c45d414-6fdc-4889-8929-6cb7399e11db" >
+		<http:listener doc:name="Listener" doc:id="5d7fbba1-8cba-4e5c-adf6-1f29b755daeb" config-ref="HTTP_Listener_config" path="/rates">
+			<http:error-response>
+				<http:body><![CDATA[#[output text/plain --- vars.error]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<set-variable doc:name="Set Currency Variable" doc:id="67dc3bc2-2b89-4e5a-a131-edb6e1a34a9f" variableName="currency" value="#[attributes.queryParams.currency]" />
+		<try doc:name="Try" doc:id="07821147-ff4d-4597-9d13-d14a2a9fcbce">
+			<http:request method="GET" doc:name="Request Chosen Currency" doc:id="ff5abe89-c33f-4cc5-b2a5-dc0bb83e3bfb" config-ref="NBP-configuration" path='#["/rates/C/" ++ (vars.currency default "")]'/>
+			<error-handler>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d54d9a7d-24b4-49e1-ae72-3509beb9c14d" type="HTTP:NOT_FOUND">
+					<logger level="INFO" doc:name="Incorrect ISO code " doc:id="324969a0-e844-411b-86fb-c506ec28fc04" message="Please use currency codes in standard ISO 4217" />
+					<set-variable value="Please use currency codes in standard ISO 4217" doc:name="Set Error Message" doc:id="cdf75d62-d327-47e9-9ae4-8a41de8d9bb2" variableName="error" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+	</flow>
+	<flow name="EUR-USD-GBP" doc:id="83eb87d5-602b-45d6-a6d9-891f39e739f0" >
+		<http:listener doc:name="Listener" doc:id="a7a0c94c-68be-4961-be0e-1d9e27eca435" config-ref="HTTP_Listener_config" path="/top3"/>
+		<scatter-gather doc:name="Combine Responses" doc:id="906417e6-045b-4d5d-bd1e-1dbe2347ed66">
+			<route>
+				<http:request method="GET" doc:name="Request EUR" doc:id="34c20818-563f-4687-92cc-dfacd7eb11bd" config-ref="NBP-configuration" path="/rates/C/EUR"/>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="5d163969-b972-450d-96a1-dd58fa6dd4a2" />
+			</route>
+			<route>
+				<http:request method="GET" doc:name="Request USD" doc:id="adc8d1e1-0bed-4856-bec0-f4d6c5e365fe" config-ref="NBP-configuration" path="/rates/C/USD"/>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="998eb2d6-0bfe-4dab-9333-05623f492de1" />
+			</route>
+			<route>
+				<http:request method="GET" doc:name="Request GBP" doc:id="49d587aa-e223-4674-b95a-c7455c3b73c0" config-ref="NBP-configuration" path="/rates/C/GBP"/>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="2d3c7dae-a9db-446c-83dc-6b1bce3275cc" />
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="71c97b16-3239-4b62-b082-63b50c066b63">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload..typedValue]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</flow>
+</mule>
