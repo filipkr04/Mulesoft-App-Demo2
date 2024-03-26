@@ -1,6 +1,6 @@
 App connects to NBP Web API:http://api.nbp.pl/en.html
 This API requests from NBP exchange rates of multiple currencies or single currency
-In order to use this API you have to make GET HTTPS request with query parameter called currency.
+In order to use this API you have to make GET HTTP request with query parameter called currency.
 Query parameter currency is currency code in standard ISO 4217
 
 App has three endpoints: 
